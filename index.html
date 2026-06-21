@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>Schede — Italian Flashcards</title>
+<style>
+  :root{
+    --paper: #F2ECE2;
+    --card: #FAF7F0;
+    --ink: #2B2A28;
+    --ink-soft: #6B6760;
+    --rule: #D9D0BE;
+    --terracotta: #B5563A;
+    --olive: #5C6B47;
+  }
+
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body{
+    margin:0;
+    padding:0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+  }
+
+  body{
+    background-image: radial-gradient(circle at 1px 1px, rgba(43,42,40,0.035) 1px, transparent 0);
+    background-size: 20px 20px;
+  }
+
+  .wrap{
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 22px 18px 50px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header{
+    display:flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 26px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 14px;
+  }
+
+  .wordmark{
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+  }
+  .wordmark span{ color: var(--terracotta); }
+
+  .settings-row{
+    display: flex;
+    gap: 10px;
+  }
+  .settings-row select{
+    font-family: inherit;
+    font-size: 12.5px;
+    color: var(--ink);
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 6px 8px;
+    flex: 1;
+  }
+
+  /* ---------- generic screen layout ---------- */
+  .screen{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .hidden-view{ display: none; }
+
+  .back-row{
+    display:flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+  .back-btn{
+    font-size: 13px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .back-btn:hover{ color: var(--terracotta); }
+  .screen-label{
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+
+  /* ---------- choice screens (big tap targets) ---------- */
+  .choice-stage{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  .choice-btn{
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 24px 20px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .choice-btn:active{ transform: scale(0.99); }
+  .choice-btn .title{
+    font-family: Georgia, serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .choice-btn .sub{
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 4px;
+  }
+
+  /* ---------- category list ---------- */
+  .cat-list{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .cat-row{
+    display:flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 14px 16px;
+    cursor: pointer;
+  }
+  .cat-row:active{ transform: scale(0.995); }
+  .cat-row .name{ font-size: 15px; font-weight: 600; }
+  .cat-row .count{ font-size: 12px; color: var(--ink-soft); }
+
+  /* ---------- flashcard ---------- */
+  .stage{
+    flex: 1;
+    display:flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+  }
+
+  .counter{
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    letter-spacing: 0.4px;
+  }
+
+  .card{
+    position: relative;
+    width: 100%;
+    max-width: 440px;
+    min-height: 240px;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    box-shadow: 0 1px 0 rgba(43,42,40,0.04), 0 10px 24px -12px rgba(43,42,40,0.25);
+    padding: 30px 24px;
+    display:flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 18px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .italian{
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  /* English shown as the lead/front face (English-first mode) */
+  .english-front{
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  /* Italian shown as the revealed/back face (English-first mode) */
+  .italian-back{
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--terracotta);
+    min-height: 24px;
+  }
+  .italian-back.hidden{ visibility: hidden; }
+
+  .english{
+    font-size: 17px;
+    color: var(--ink-soft);
+    min-height: 24px;
+  }
+  .english.hidden{ visibility: hidden; }
+
+  .tap-hint{
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    letter-spacing: 0.3px;
+  }
+
+  /* volume icon: no popup, just plays audio */
+  .volume-btn{
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    display:flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .volume-btn svg{ width: 19px; height: 19px; }
+  .volume-btn:active{ transform: scale(0.95); }
+
+  .grade-row{
+    display:flex;
+    gap: 10px;
+    width: 100%;
+    max-width: 440px;
+  }
+  .grade-btn{
+    flex: 1;
+    padding: 14px 8px;
+    border-radius: 3px;
+    border: 1px solid var(--rule);
+    background: var(--card);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .grade-btn.miss{ border-color: var(--terracotta); color: var(--terracotta); }
+  .grade-btn.got{ border-color: var(--olive); color: var(--olive); }
+
+  .done-state{
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 15px;
+    padding: 30px 10px;
+  }
+  .done-state .big{
+    font-family: Georgia, serif;
+    font-size: 21px;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .reset-link{
+    margin-top: 16px;
+    display:inline-block;
+    font-size: 13px;
+    color: var(--terracotta);
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  footer{
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    margin-top: 30px;
+    letter-spacing: 0.3px;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="wordmark" id="homeLink">sched<span>e</span>.</div>
+    <div class="settings-row">
+      <select id="profileSelect">
+        <option value="profile1">Profile 1</option>
+        <option value="profile2">Profile 2</option>
+      </select>
+      <select id="directionSelect">
+        <option value="it-first">Italian → English</option>
+        <option value="en-first">English → Italian</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- SCREEN 1: Vocabulary / Sentences -->
+  <div id="screenSection" class="screen">
+    <div class="choice-stage">
+      <button class="choice-btn" id="btnVocab">
+        <div class="title">Vocabulary</div>
+        <div class="sub">Single words — family, body, food, weather, and more</div>
+      </button>
+      <button class="choice-btn" id="btnSentences">
+        <div class="title">Sentences</div>
+        <div class="sub">Full phrases you'll actually say — restaurants, hotels, getting around</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: Random / Choose a category -->
+  <div id="screenMode" class="screen hidden-view">
+    <div class="back-row">
+      <span class="back-btn" id="backToSection">← back</span>
+      <span class="screen-label" id="modeLabel"></span>
+    </div>
+    <div class="choice-stage">
+      <button class="choice-btn" id="btnRandom">
+        <div class="title">Random</div>
+        <div class="sub">Shuffled mix from everything in this section</div>
+      </button>
+      <button class="choice-btn" id="btnChooseCat">
+        <div class="title">Choose a category</div>
+        <div class="sub">Pick a specific topic to study</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: Category list -->
+  <div id="screenCatList" class="screen hidden-view">
+    <div class="back-row">
+      <span class="back-btn" id="backToMode">← back</span>
+      <span class="screen-label" id="catListLabel"></span>
+    </div>
+    <div class="cat-list" id="catListContainer"></div>
+  </div>
+
+  <!-- SCREEN 4: Flashcard study -->
+  <div id="screenStudy" class="screen hidden-view">
+    <div class="back-row">
+      <span class="back-btn" id="backFromStudy">← back</span>
+      <span class="screen-label" id="studyLabel"></span>
+    </div>
+    <div class="stage" id="stage"></div>
+  </div>
+
+  <footer>no streaks, no levels, no notifications — just the words.</footer>
+</div>
+
+<script>
+(function(){
+
+  // ---------- Deck ----------
+  const DECK = [{"it":"Ciao","en":"Hi / Bye","cat":"Greetings & basics","id":0},{"it":"Buongiorno","en":"Hello / Good morning","cat":"Greetings & basics","id":1},{"it":"Buon pomeriggio","en":"Good afternoon","cat":"Greetings & basics","id":2},{"it":"Buonasera","en":"Good evening","cat":"Greetings & basics","id":3},{"it":"Buonanotte","en":"Good night","cat":"Greetings & basics","id":4},{"it":"Come sta?","en":"How are you? (formal)","cat":"Greetings & basics","id":5},{"it":"Bene, grazie","en":"Good, thank you","cat":"Greetings & basics","id":6},{"it":"E lei?","en":"And you? (formal)","cat":"Greetings & basics","id":7},{"it":"Così così","en":"So-so","cat":"Greetings & basics","id":8},{"it":"Sono di Filadelfia","en":"I am from Philadelphia","cat":"Greetings & basics","id":9},{"it":"Di dov'è?","en":"Where are you from? (formal)","cat":"Greetings & basics","id":10},{"it":"Piacere","en":"Nice to meet you","cat":"Greetings & basics","id":11},{"it":"Grazie","en":"Thank you","cat":"Greetings & basics","id":12},{"it":"Grazie mille","en":"Thank you so much","cat":"Greetings & basics","id":13},{"it":"È stato tutto fantastico, grazie","en":"It was all fantastic, thank you","cat":"Greetings & basics","id":14},{"it":"Prego","en":"You're welcome / Please, go ahead","cat":"Greetings & basics","id":15},{"it":"Per favore","en":"Please","cat":"Greetings & basics","id":16},{"it":"Mi scusi","en":"Excuse me (formal)","cat":"Greetings & basics","id":17},{"it":"Mi dispiace","en":"I'm sorry","cat":"Greetings & basics","id":18},{"it":"Non parlo italiano molto bene","en":"I don't speak Italian very well","cat":"Greetings & basics","id":19},{"it":"Parla inglese?","en":"Do you speak English? (formal)","cat":"Greetings & basics","id":20},{"it":"Può ripetere, per favore?","en":"Can you repeat that, please?","cat":"Greetings & basics","id":21},{"it":"Può parlare più lentamente?","en":"Can you speak more slowly?","cat":"Greetings & basics","id":22},{"it":"Non capisco","en":"I don't understand","cat":"Greetings & basics","id":23},{"it":"Capisco","en":"I understand","cat":"Greetings & basics","id":24},{"it":"Come si dice...?","en":"How do you say...?","cat":"Greetings & basics","id":25},{"it":"Cosa significa?","en":"What does it mean?","cat":"Greetings & basics","id":26},{"it":"Arrivederci","en":"Goodbye (formal)","cat":"Greetings & basics","id":27},{"it":"A presto","en":"See you soon","cat":"Greetings & basics","id":28},{"it":"Buon viaggio","en":"Have a good trip","cat":"Greetings & basics","id":29},{"it":"Ha un tavolo per due, per favore?","en":"Do you have a table for two, please?","cat":"At the restaurant","id":30},{"it":"Una prenotazione per due","en":"A reservation for two","cat":"At the restaurant","id":31},{"it":"Il menù, per favore","en":"The menu, please","cat":"At the restaurant","id":32},{"it":"Cosa ci consiglia?","en":"What do you recommend? (formal)","cat":"At the restaurant","id":33},{"it":"Vorrei...","en":"I would like...","cat":"At the restaurant","id":34},{"it":"Per me...","en":"For me... (ordering)","cat":"At the restaurant","id":35},{"it":"Siamo pronti per ordinare","en":"We're ready to order","cat":"At the restaurant","id":36},{"it":"Un'acqua, per favore","en":"A water, please","cat":"At the restaurant","id":37},{"it":"Acqua frizzante o naturale?","en":"Sparkling or still water?","cat":"At the restaurant","id":38},{"it":"Un bicchiere di vino rosso","en":"A glass of red wine","cat":"At the restaurant","id":39},{"it":"Un bicchiere di vino bianco","en":"A glass of white wine","cat":"At the restaurant","id":40},{"it":"Una birra alla spina","en":"A draft beer","cat":"At the restaurant","id":41},{"it":"Un caffè, per favore","en":"A coffee (espresso), please","cat":"At the restaurant","id":42},{"it":"Un espresso, per favore","en":"An espresso, please","cat":"At the restaurant","id":43},{"it":"Un cappuccino, per favore","en":"A cappuccino, please","cat":"At the restaurant","id":44},{"it":"Un caffè macchiato","en":"An espresso with a splash of milk","cat":"At the restaurant","id":45},{"it":"Un caffè americano","en":"An \"Americano\" style coffee (weaker, more water)","cat":"At the restaurant","id":46},{"it":"Un caffè decaffeinato","en":"A decaf coffee","cat":"At the restaurant","id":47},{"it":"È piccante?","en":"Is it spicy?","cat":"At the restaurant","id":48},{"it":"È delizioso","en":"It's delicious","cat":"At the restaurant","id":49},{"it":"Il conto, per favore","en":"The check, please","cat":"At the restaurant","id":50},{"it":"È incluso il servizio?","en":"Is service included?","cat":"At the restaurant","id":51},{"it":"Posso pagare con la carta?","en":"Can I pay by card?","cat":"At the restaurant","id":52},{"it":"Solo contanti","en":"Cash only","cat":"At the restaurant","id":53},{"it":"Grazie, è stato tutto fantastico","en":"Thank you, it was all fantastic","cat":"At the restaurant","id":54},{"it":"Possiamo avere ancora pane?","en":"Can we have more bread?","cat":"At the restaurant","id":55},{"it":"Un altro giro, per favore","en":"Another round, please","cat":"At the restaurant","id":56},{"it":"Ho una prenotazione","en":"I have a reservation","cat":"Hotel / lodging","id":57},{"it":"A che ora è il check-in?","en":"What time is check-in?","cat":"Hotel / lodging","id":58},{"it":"A che ora è il check-out?","en":"What time is checkout?","cat":"Hotel / lodging","id":59},{"it":"C'è il Wi-Fi?","en":"Is there Wi-Fi?","cat":"Hotel / lodging","id":60},{"it":"Qual è la password?","en":"What's the password?","cat":"Hotel / lodging","id":61},{"it":"Potrei avere un'altra chiave?","en":"Could I have another key?","cat":"Hotel / lodging","id":62},{"it":"C'è un problema con la camera","en":"There's a problem with the room","cat":"Hotel / lodging","id":63},{"it":"La camera è troppo fredda","en":"The room is too cold","cat":"Hotel / lodging","id":64},{"it":"La camera è troppo calda","en":"The room is too hot","cat":"Hotel / lodging","id":65},{"it":"A che ora è la colazione?","en":"What time is breakfast?","cat":"Hotel / lodging","id":66},{"it":"Potrebbe chiamarmi un taxi?","en":"Could you call me a taxi?","cat":"Hotel / lodging","id":67},{"it":"Potrei avere un asciugamano in più?","en":"Could I have an extra towel?","cat":"Hotel / lodging","id":68},{"it":"Dov'è il bagno?","en":"Where's the bathroom?","cat":"Getting around","id":69},{"it":"Dov'è la stazione?","en":"Where's the station?","cat":"Getting around","id":70},{"it":"Quanto costa?","en":"How much does it cost?","cat":"Getting around","id":71},{"it":"A che ora parte il treno?","en":"What time does the train leave?","cat":"Getting around","id":72},{"it":"A che ora arriva?","en":"What time does it arrive?","cat":"Getting around","id":73},{"it":"Un biglietto per Roma, per favore","en":"A ticket to Rome, please","cat":"Getting around","id":74},{"it":"È lontano da qui?","en":"Is it far from here?","cat":"Getting around","id":75},{"it":"È vicino","en":"It's close","cat":"Getting around","id":76},{"it":"Sempre dritto","en":"Straight ahead","cat":"Getting around","id":77},{"it":"A sinistra","en":"To the left","cat":"Getting around","id":78},{"it":"A destra","en":"To the right","cat":"Getting around","id":79},{"it":"All'angolo","en":"On the corner","cat":"Getting around","id":80},{"it":"Quanto tempo ci vuole?","en":"How long does it take?","cat":"Getting around","id":81},{"it":"Dov'è la fermata dell'autobus?","en":"Where's the bus stop?","cat":"Getting around","id":82},{"it":"Quanto costa questo?","en":"How much is this?","cat":"Shopping","id":83},{"it":"Posso provarlo?","en":"Can I try it on?","cat":"Shopping","id":84},{"it":"Avete una taglia più grande?","en":"Do you have a bigger size?","cat":"Shopping","id":85},{"it":"Avete una taglia più piccola?","en":"Do you have a smaller size?","cat":"Shopping","id":86},{"it":"Accettate carte di credito?","en":"Do you accept credit cards?","cat":"Shopping","id":87},{"it":"Solo guardo, grazie","en":"I'm just looking, thank you","cat":"Shopping","id":88},{"it":"Lo prendo","en":"I'll take it","cat":"Shopping","id":89},{"it":"Avete un sacchetto?","en":"Do you have a bag?","cat":"Shopping","id":90},{"it":"Aiuto!","en":"Help!","cat":"Emergencies / health","id":91},{"it":"Ho bisogno di un medico","en":"I need a doctor","cat":"Emergencies / health","id":92},{"it":"Chiami un'ambulanza, per favore","en":"Call an ambulance, please","cat":"Emergencies / health","id":93},{"it":"Dov'è la farmacia più vicina?","en":"Where's the nearest pharmacy?","cat":"Emergencies / health","id":94},{"it":"Mi sento male","en":"I feel sick","cat":"Emergencies / health","id":95},{"it":"Ho perso il passaporto","en":"I lost my passport","cat":"Emergencies / health","id":96},{"it":"Dov'è l'ospedale?","en":"Where's the hospital?","cat":"Emergencies / health","id":97},{"it":"Io","en":"I","cat":"Pronouns","id":98},{"it":"Tu","en":"You (informal)","cat":"Pronouns","id":99},{"it":"Lei","en":"You (formal) / She","cat":"Pronouns","id":100},{"it":"Lui","en":"He","cat":"Pronouns","id":101},{"it":"Noi","en":"We","cat":"Pronouns","id":102},{"it":"Voi","en":"You all","cat":"Pronouns","id":103},{"it":"Loro","en":"They","cat":"Pronouns","id":104},{"it":"La famiglia","en":"Family","cat":"Family","id":105},{"it":"La madre / la mamma","en":"Mother / Mom","cat":"Family","id":106},{"it":"Il padre / il papà","en":"Father / Dad","cat":"Family","id":107},{"it":"Il marito","en":"Husband","cat":"Family","id":108},{"it":"La moglie","en":"Wife","cat":"Family","id":109},{"it":"Il figlio","en":"Son","cat":"Family","id":110},{"it":"La figlia","en":"Daughter","cat":"Family","id":111},{"it":"Il fratello","en":"Brother","cat":"Family","id":112},{"it":"La sorella","en":"Sister","cat":"Family","id":113},{"it":"Il nonno","en":"Grandfather","cat":"Family","id":114},{"it":"La nonna","en":"Grandmother","cat":"Family","id":115},{"it":"Lo zio","en":"Uncle","cat":"Family","id":116},{"it":"La zia","en":"Aunt","cat":"Family","id":117},{"it":"Il cugino / la cugina","en":"Cousin (m./f.)","cat":"Family","id":118},{"it":"L'amico / l'amica","en":"Friend (m./f.)","cat":"Family","id":119},{"it":"La testa","en":"Head","cat":"Body parts","id":120},{"it":"La faccia","en":"Face","cat":"Body parts","id":121},{"it":"L'occhio / gli occhi","en":"Eye / eyes","cat":"Body parts","id":122},{"it":"Il naso","en":"Nose","cat":"Body parts","id":123},{"it":"La bocca","en":"Mouth","cat":"Body parts","id":124},{"it":"L'orecchio / le orecchie","en":"Ear / ears","cat":"Body parts","id":125},{"it":"Il braccio / le braccia","en":"Arm / arms","cat":"Body parts","id":126},{"it":"La mano / le mani","en":"Hand / hands","cat":"Body parts","id":127},{"it":"La gamba","en":"Leg","cat":"Body parts","id":128},{"it":"Il piede / i piedi","en":"Foot / feet","cat":"Body parts","id":129},{"it":"La schiena","en":"Back","cat":"Body parts","id":130},{"it":"Lo stomaco","en":"Stomach","cat":"Body parts","id":131},{"it":"Il piatto","en":"Plate","cat":"Tableware / dining objects","id":132},{"it":"La ciotola","en":"Bowl","cat":"Tableware / dining objects","id":133},{"it":"La tazza","en":"Cup","cat":"Tableware / dining objects","id":134},{"it":"Il bicchiere","en":"Glass","cat":"Tableware / dining objects","id":135},{"it":"La forchetta","en":"Fork","cat":"Tableware / dining objects","id":136},{"it":"Il cucchiaio","en":"Spoon","cat":"Tableware / dining objects","id":137},{"it":"Il coltello","en":"Knife","cat":"Tableware / dining objects","id":138},{"it":"Il tovagliolo","en":"Napkin","cat":"Tableware / dining objects","id":139},{"it":"La bottiglia","en":"Bottle","cat":"Tableware / dining objects","id":140},{"it":"La caraffa","en":"Carafe / pitcher","cat":"Tableware / dining objects","id":141},{"it":"L'acqua","en":"Water","cat":"Food & drink","id":142},{"it":"Il vino","en":"Wine","cat":"Food & drink","id":143},{"it":"La birra","en":"Beer","cat":"Food & drink","id":144},{"it":"Il caffè","en":"Coffee","cat":"Food & drink","id":145},{"it":"Il pane","en":"Bread","cat":"Food & drink","id":146},{"it":"Il formaggio","en":"Cheese","cat":"Food & drink","id":147},{"it":"La carne","en":"Meat","cat":"Food & drink","id":148},{"it":"Il pesce","en":"Fish","cat":"Food & drink","id":149},{"it":"La verdura","en":"Vegetable","cat":"Food & drink","id":150},{"it":"La frutta","en":"Fruit","cat":"Food & drink","id":151},{"it":"Il dolce","en":"Dessert","cat":"Food & drink","id":152},{"it":"Lo zucchero","en":"Sugar","cat":"Food & drink","id":153},{"it":"Il sale","en":"Salt","cat":"Food & drink","id":154},{"it":"Il pepe","en":"Pepper","cat":"Food & drink","id":155},{"it":"L'olio d'oliva","en":"Olive oil","cat":"Food & drink","id":156},{"it":"Uno","en":"One","cat":"Numbers","id":157},{"it":"Due","en":"Two","cat":"Numbers","id":158},{"it":"Tre","en":"Three","cat":"Numbers","id":159},{"it":"Quattro","en":"Four","cat":"Numbers","id":160},{"it":"Cinque","en":"Five","cat":"Numbers","id":161},{"it":"Sei","en":"Six","cat":"Numbers","id":162},{"it":"Sette","en":"Seven","cat":"Numbers","id":163},{"it":"Otto","en":"Eight","cat":"Numbers","id":164},{"it":"Nove","en":"Nine","cat":"Numbers","id":165},{"it":"Dieci","en":"Ten","cat":"Numbers","id":166},{"it":"Undici","en":"Eleven","cat":"Numbers","id":167},{"it":"Dodici","en":"Twelve","cat":"Numbers","id":168},{"it":"Venti","en":"Twenty","cat":"Numbers","id":169},{"it":"Trenta","en":"Thirty","cat":"Numbers","id":170},{"it":"Cinquanta","en":"Fifty","cat":"Numbers","id":171},{"it":"Cento","en":"One hundred","cat":"Numbers","id":172},{"it":"Mille","en":"One thousand","cat":"Numbers","id":173},{"it":"Che ore sono?","en":"What time is it?","cat":"Time / clock","id":174},{"it":"Sono le due","en":"It's two o'clock","cat":"Time / clock","id":175},{"it":"È l'una","en":"It's one o'clock","cat":"Time / clock","id":176},{"it":"Mezzogiorno","en":"Noon","cat":"Time / clock","id":177},{"it":"Mezzanotte","en":"Midnight","cat":"Time / clock","id":178},{"it":"Un quarto","en":"A quarter (15 min)","cat":"Time / clock","id":179},{"it":"Mezz'ora","en":"Half an hour","cat":"Time / clock","id":180},{"it":"In punto","en":"On the dot / exactly","cat":"Time / clock","id":181},{"it":"Di mattina","en":"In the morning","cat":"Time / clock","id":182},{"it":"Di pomeriggio","en":"In the afternoon","cat":"Time / clock","id":183},{"it":"Di sera","en":"In the evening","cat":"Time / clock","id":184},{"it":"Oggi","en":"Today","cat":"Time / clock","id":185},{"it":"Domani","en":"Tomorrow","cat":"Time / clock","id":186},{"it":"Ieri","en":"Yesterday","cat":"Time / clock","id":187},{"it":"Adesso","en":"Now","cat":"Time / clock","id":188},{"it":"Dopo","en":"Later","cat":"Time / clock","id":189},{"it":"Presto","en":"Early / soon","cat":"Time / clock","id":190},{"it":"Tardi","en":"Late","cat":"Time / clock","id":191},{"it":"Lunedì","en":"Monday","cat":"Days of the week","id":192},{"it":"Martedì","en":"Tuesday","cat":"Days of the week","id":193},{"it":"Mercoledì","en":"Wednesday","cat":"Days of the week","id":194},{"it":"Giovedì","en":"Thursday","cat":"Days of the week","id":195},{"it":"Venerdì","en":"Friday","cat":"Days of the week","id":196},{"it":"Sabato","en":"Saturday","cat":"Days of the week","id":197},{"it":"Domenica","en":"Sunday","cat":"Days of the week","id":198},{"it":"Qui","en":"Here","cat":"Directions / position words","id":199},{"it":"Lì","en":"There","cat":"Directions / position words","id":200},{"it":"Vicino","en":"Near","cat":"Directions / position words","id":201},{"it":"Lontano","en":"Far","cat":"Directions / position words","id":202},{"it":"Davanti","en":"In front","cat":"Directions / position words","id":203},{"it":"Dietro","en":"Behind","cat":"Directions / position words","id":204},{"it":"Sopra","en":"Above / on top","cat":"Directions / position words","id":205},{"it":"Sotto","en":"Below / under","cat":"Directions / position words","id":206},{"it":"Dentro","en":"Inside","cat":"Directions / position words","id":207},{"it":"Fuori","en":"Outside","cat":"Directions / position words","id":208},{"it":"Su","en":"Up","cat":"Directions / position words","id":209},{"it":"Giù","en":"Down","cat":"Directions / position words","id":210},{"it":"Rosso","en":"Red","cat":"Colors","id":211},{"it":"Blu","en":"Blue","cat":"Colors","id":212},{"it":"Verde","en":"Green","cat":"Colors","id":213},{"it":"Giallo","en":"Yellow","cat":"Colors","id":214},{"it":"Nero","en":"Black","cat":"Colors","id":215},{"it":"Bianco","en":"White","cat":"Colors","id":216},{"it":"La camera","en":"Room","cat":"Hotel room","id":217},{"it":"Il letto","en":"Bed","cat":"Hotel room","id":218},{"it":"Il cuscino","en":"Pillow","cat":"Hotel room","id":219},{"it":"La coperta","en":"Blanket","cat":"Hotel room","id":220},{"it":"Le lenzuola","en":"Sheets","cat":"Hotel room","id":221},{"it":"La doccia","en":"Shower","cat":"Hotel room","id":222},{"it":"La vasca da bagno","en":"Bathtub","cat":"Hotel room","id":223},{"it":"Lo spazzolino","en":"Toothbrush","cat":"Hotel room","id":224},{"it":"Il dentifricio","en":"Toothpaste","cat":"Hotel room","id":225},{"it":"L'asciugacapelli","en":"Hair dryer","cat":"Hotel room","id":226},{"it":"La chiave","en":"Key","cat":"Hotel room","id":227},{"it":"L'ascensore","en":"Elevator","cat":"Hotel room","id":228},{"it":"Le scale","en":"Stairs","cat":"Hotel room","id":229},{"it":"L'armadio","en":"Closet","cat":"Hotel room","id":230},{"it":"La finestra","en":"Window","cat":"Hotel room","id":231},{"it":"La porta","en":"Door","cat":"Hotel room","id":232},{"it":"La luce","en":"Light","cat":"Hotel room","id":233},{"it":"Il cappello","en":"Hat","cat":"Clothing & beach","id":234},{"it":"Gli occhiali da sole","en":"Sunglasses","cat":"Clothing & beach","id":235},{"it":"La crema solare","en":"Sunscreen","cat":"Clothing & beach","id":236},{"it":"I pantaloncini","en":"Shorts","cat":"Clothing & beach","id":237},{"it":"I pantaloni","en":"Pants","cat":"Clothing & beach","id":238},{"it":"La maglietta","en":"Shirt / T-shirt","cat":"Clothing & beach","id":239},{"it":"La camicetta","en":"Blouse","cat":"Clothing & beach","id":240},{"it":"Le scarpe","en":"Shoes","cat":"Clothing & beach","id":241},{"it":"Gli stivali","en":"Boots","cat":"Clothing & beach","id":242},{"it":"I sandali","en":"Sandals","cat":"Clothing & beach","id":243},{"it":"Il costume da bagno","en":"Swimsuit","cat":"Clothing & beach","id":244},{"it":"La spiaggia","en":"Beach","cat":"Clothing & beach","id":245},{"it":"L'asciugamano","en":"Towel","cat":"Clothing & beach","id":246},{"it":"L'ombrellone","en":"Beach umbrella","cat":"Clothing & beach","id":247},{"it":"Il tempo","en":"Weather","cat":"Weather","id":248},{"it":"La pioggia","en":"Rain","cat":"Weather","id":249},{"it":"Piove","en":"It's raining","cat":"Weather","id":250},{"it":"La nuvola","en":"Cloud","cat":"Weather","id":251},{"it":"Nuvoloso","en":"Cloudy","cat":"Weather","id":252},{"it":"Il sole","en":"Sun","cat":"Weather","id":253},{"it":"Soleggiato","en":"Sunny","cat":"Weather","id":254},{"it":"Il vento","en":"Wind","cat":"Weather","id":255},{"it":"Caldo","en":"Hot","cat":"Weather","id":256},{"it":"Freddo","en":"Cold","cat":"Weather","id":257},{"it":"Il cellulare","en":"Cell phone","cat":"Phone & communication","id":258},{"it":"Internet","en":"Internet","cat":"Phone & communication","id":259},{"it":"Il messaggio","en":"Text message","cat":"Phone & communication","id":260},{"it":"La telefonata","en":"Phone call","cat":"Phone & communication","id":261},{"it":"Il caricatore","en":"Charger","cat":"Phone & communication","id":262},{"it":"La batteria","en":"Battery","cat":"Phone & communication","id":263},{"it":"Il Wi-Fi","en":"Wi-Fi","cat":"Phone & communication","id":264},{"it":"Il segnale","en":"Signal","cat":"Phone & communication","id":265},{"it":"Il treno","en":"Train","cat":"Transportation","id":266},{"it":"L'autobus","en":"Bus","cat":"Transportation","id":267},{"it":"La macchina","en":"Car","cat":"Transportation","id":268},{"it":"Lo scooter","en":"Scooter","cat":"Transportation","id":269},{"it":"A piedi","en":"Walking / on foot","cat":"Transportation","id":270},{"it":"Il taxi","en":"Taxi","cat":"Transportation","id":271},{"it":"L'aereo","en":"Airplane","cat":"Transportation","id":272},{"it":"L'aeroporto","en":"Airport","cat":"Transportation","id":273},{"it":"Il volo","en":"Flight","cat":"Transportation","id":274},{"it":"Il bagaglio","en":"Luggage","cat":"Transportation","id":275},{"it":"La valigia","en":"Suitcase","cat":"Transportation","id":276},{"it":"La strada","en":"Road / street","cat":"Street & navigation","id":277},{"it":"Il marciapiede","en":"Sidewalk","cat":"Street & navigation","id":278},{"it":"Il segnale di stop","en":"Stop sign","cat":"Street & navigation","id":279},{"it":"Il semaforo","en":"Traffic light","cat":"Street & navigation","id":280},{"it":"L'incrocio","en":"Intersection","cat":"Street & navigation","id":281},{"it":"La piazza","en":"Square (town square)","cat":"Street & navigation","id":282},{"it":"Il mare","en":"Sea","cat":"Street & navigation","id":283},{"it":"La collina","en":"Hill","cat":"Street & navigation","id":284},{"it":"La spazzatura","en":"Trash","cat":"Street & navigation","id":285},{"it":"Avanti","en":"Forward","cat":"Street & navigation","id":286},{"it":"Indietro","en":"Backward","cat":"Street & navigation","id":287},{"it":"Gira a sinistra","en":"Turn left","cat":"Street & navigation","id":288},{"it":"Gira a destra","en":"Turn right","cat":"Street & navigation","id":289}];
+
+  const PHRASE_CATS = ["Greetings & basics","At the restaurant","Hotel / lodging","Getting around","Shopping","Emergencies / health"];
+  const VOCAB_CATS = ["Pronouns","Family","Body parts","Tableware / dining objects","Food & drink","Numbers","Time / clock","Days of the week","Directions / position words","Colors","Hotel room","Clothing & beach","Weather","Phone & communication","Transportation","Street & navigation"];
+
+  // ---------- Profile / storage ----------
+  const profileSelect = document.getElementById('profileSelect');
+  let currentProfile = localStorage.getItem('schede_active_profile') || 'profile1';
+  profileSelect.value = currentProfile;
+
+  function storageKey(profile){ return 'schede_progress_' + profile; }
+  function loadProgress(profile){
+    try{
+      const raw = localStorage.getItem(storageKey(profile));
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveProgress(profile, prog){
+    localStorage.setItem(storageKey(profile), JSON.stringify(prog));
+  }
+  let progress = loadProgress(currentProfile);
+
+  profileSelect.addEventListener('change', () => {
+    currentProfile = profileSelect.value;
+    localStorage.setItem('schede_active_profile', currentProfile);
+    progress = loadProgress(currentProfile);
+    direction = loadDirection(currentProfile);
+    directionSelect.value = direction;
+    goToSection();
+  });
+
+  // ---------- Direction (Italian-first vs English-first), per profile ----------
+  const directionSelect = document.getElementById('directionSelect');
+  function directionKey(profile){ return 'schede_direction_' + profile; }
+  function loadDirection(profile){
+    return localStorage.getItem(directionKey(profile)) || 'it-first';
+  }
+  function saveDirection(profile, dir){
+    localStorage.setItem(directionKey(profile), dir);
+  }
+  let direction = loadDirection(currentProfile);
+  directionSelect.value = direction;
+
+  directionSelect.addEventListener('change', () => {
+    direction = directionSelect.value;
+    saveDirection(currentProfile, direction);
+  });
+
+  // ---------- Spaced repetition ----------
+  const BOX_INTERVALS_DAYS = [0, 1, 4, 9, 21];
+  function getCardState(id){ return progress[id] || { box: 0, dueAt: 0 }; }
+  function gradeCard(id, grade){
+    const state = getCardState(id);
+    let box = state.box;
+    if(grade === 'miss') box = 0;
+    else if(grade === 'got') box = Math.min(box + 1, BOX_INTERVALS_DAYS.length - 1);
+    const days = BOX_INTERVALS_DAYS[box];
+    const dueAt = Date.now() + days * 24 * 60 * 60 * 1000;
+    progress[id] = { box, dueAt };
+    saveProgress(currentProfile, progress);
+  }
+
+  // ---------- Audio ----------
+  let italianVoice = null;
+  function pickVoice(){
+    const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+    italianVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('it')) || null;
+  }
+  if('speechSynthesis' in window){
+    pickVoice();
+    window.speechSynthesis.onvoiceschanged = pickVoice;
+  }
+  function speakItalian(text){
+    if(!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'it-IT';
+    if(italianVoice) utter.voice = italianVoice;
+    utter.rate = 0.92;
+    window.speechSynthesis.speak(utter);
+  }
+
+  // ---------- Screen elements ----------
+  const screenSection = document.getElementById('screenSection');
+  const screenMode = document.getElementById('screenMode');
+  const screenCatList = document.getElementById('screenCatList');
+  const screenStudy = document.getElementById('screenStudy');
+  const ALL_SCREENS = [screenSection, screenMode, screenCatList, screenStudy];
+
+  function showScreen(screen){
+    ALL_SCREENS.forEach(s => s.classList.add('hidden-view'));
+    screen.classList.remove('hidden-view');
+  }
+
+  // ---------- Navigation state ----------
+  let currentSection = null; // 'vocab' | 'sentences'
+
+  function goToSection(){
+    currentSection = null;
+    showScreen(screenSection);
+  }
+
+  document.getElementById('homeLink').addEventListener('click', goToSection);
+
+  document.getElementById('btnVocab').addEventListener('click', () => {
+    currentSection = 'vocab';
+    enterMode();
+  });
+  document.getElementById('btnSentences').addEventListener('click', () => {
+    currentSection = 'sentences';
+    enterMode();
+  });
+
+  function enterMode(){
+    document.getElementById('modeLabel').textContent = currentSection === 'vocab' ? 'Vocabulary' : 'Sentences';
+    showScreen(screenMode);
+  }
+  document.getElementById('backToSection').addEventListener('click', goToSection);
+
+  document.getElementById('btnRandom').addEventListener('click', () => {
+    startStudy(null); // null category = whole section, shuffled
+  });
+  document.getElementById('btnChooseCat').addEventListener('click', () => {
+    enterCatList();
+  });
+
+  function enterCatList(){
+    document.getElementById('catListLabel').textContent = currentSection === 'vocab' ? 'Vocabulary' : 'Sentences';
+    const cats = currentSection === 'vocab' ? VOCAB_CATS : PHRASE_CATS;
+    const container = document.getElementById('catListContainer');
+    container.innerHTML = cats.map(cat => {
+      const count = DECK.filter(c => c.cat === cat).length;
+      return `<div class="cat-row" data-cat="${cat.replace(/"/g,'&quot;')}">
+        <span class="name">${cat}</span>
+        <span class="count">${count} cards</span>
+      </div>`;
+    }).join('');
+    container.querySelectorAll('.cat-row').forEach(row => {
+      row.addEventListener('click', () => startStudy(row.dataset.cat));
+    });
+    showScreen(screenCatList);
+  }
+  document.getElementById('backToMode').addEventListener('click', enterMode);
+  document.getElementById('backFromStudy').addEventListener('click', () => {
+    showScreen(screenMode);
+  });
+
+  // ---------- Study session ----------
+  let queue = [];
+  let currentIndex = 0;
+  let revealed = false;
+  let sessionLabel = '';
+
+  function startStudy(cat){
+    const sectionCats = currentSection === 'vocab' ? VOCAB_CATS : PHRASE_CATS;
+    let pool;
+    if(cat){
+      pool = DECK.filter(c => c.cat === cat);
+      sessionLabel = cat;
+    } else {
+      pool = DECK.filter(c => sectionCats.includes(c.cat));
+      sessionLabel = (currentSection === 'vocab' ? 'Vocabulary' : 'Sentences') + ' — random';
+    }
+    queue = pool.slice();
+    for(let i = queue.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [queue[i], queue[j]] = [queue[j], queue[i]];
+    }
+    currentIndex = 0;
+    revealed = false;
+    document.getElementById('studyLabel').textContent = sessionLabel;
+    showScreen(screenStudy);
+    renderCard();
+  }
+
+  const stage = document.getElementById('stage');
+
+  function renderCard(){
+    if(currentIndex >= queue.length){
+      renderDone();
+      return;
+    }
+    const card = queue[currentIndex];
+    const remaining = queue.length - currentIndex;
+
+    const itFirst = direction === 'it-first';
+    const frontText = itFirst ? card.it : card.en;
+    const backText = itFirst ? card.en : card.it;
+    const frontClass = itFirst ? 'italian' : 'english-front';
+    const backClass = itFirst ? 'english' : 'italian-back';
+
+    stage.innerHTML = `
+      <div class="counter">${remaining} of ${queue.length}</div>
+      <div class="card" id="flashcard">
+        <button class="volume-btn" id="volumeBtn" aria-label="Play pronunciation" title="Play pronunciation">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        </button>
+        <div class="${frontClass}" id="frontWord">${frontText}</div>
+        <div class="${backClass} ${revealed ? '' : 'hidden'}" id="backWord">${backText}</div>
+        ${!revealed ? '<div class="tap-hint">tap card to reveal</div>' : ''}
+      </div>
+      ${revealed ? `
+        <div class="grade-row">
+          <button class="grade-btn miss" data-grade="miss">Didn't know it</button>
+          <button class="grade-btn got" data-grade="got">Got it</button>
+        </div>
+      ` : ''}
+    `;
+
+    // tapping the card (but not the volume button) reveals
+    document.getElementById('flashcard').addEventListener('click', (e) => {
+      if(e.target.closest('#volumeBtn')) return;
+      if(!revealed){ revealed = true; renderCard(); }
+    });
+
+    // volume button: always speaks Italian, no popup, no other effect
+    document.getElementById('volumeBtn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      speakItalian(card.it);
+    });
+
+    document.querySelectorAll('.grade-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        gradeCard(card.id, btn.dataset.grade);
+        currentIndex++;
+        revealed = false;
+        renderCard();
+      });
+    });
+  }
+
+  function renderDone(){
+    stage.innerHTML = `
+      <div class="done-state">
+        <div class="big">That's everything.</div>
+        <div>You went through ${queue.length} card${queue.length===1?'':'s'}.</div>
+        <span class="reset-link" id="restartLink">go again</span>
+      </div>
+    `;
+    document.getElementById('restartLink').addEventListener('click', () => {
+      for(let i = queue.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [queue[i], queue[j]] = [queue[j], queue[i]];
+      }
+      currentIndex = 0;
+      revealed = false;
+      renderCard();
+    });
+  }
+
+  // ---------- Init ----------
+  goToSection();
+
+})();
+</script>
+
+</body>
+</html>
