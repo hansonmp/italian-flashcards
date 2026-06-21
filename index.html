@@ -242,26 +242,59 @@
   .volume-btn svg{ width: 19px; height: 19px; }
   .volume-btn:active{ transform: scale(0.95); }
 
+  /* Prev/Next: primary navigation, always available */
+  .nav-row{
+    display:flex;
+    gap: 10px;
+    width: 100%;
+    max-width: 440px;
+  }
+  .nav-btn{
+    flex: 1;
+    padding: 14px 8px;
+    border-radius: 3px;
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--paper);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.2px;
+  }
+  .nav-btn:disabled{
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  /* Got it / Didn't know it: optional, secondary, doesn't gate navigation */
   .grade-row{
     display:flex;
     gap: 10px;
     width: 100%;
     max-width: 440px;
   }
+  .grade-row.optional{
+    margin-top: -6px;
+  }
   .grade-btn{
     flex: 1;
-    padding: 14px 8px;
+    padding: 11px 8px;
     border-radius: 3px;
     border: 1px solid var(--rule);
-    background: var(--card);
+    background: transparent;
     font-family: inherit;
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--ink);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-soft);
     cursor: pointer;
   }
-  .grade-btn.miss{ border-color: var(--terracotta); color: var(--terracotta); }
-  .grade-btn.got{ border-color: var(--olive); color: var(--olive); }
+  .grade-btn.miss{ border-color: var(--rule); }
+  .grade-btn.got{ border-color: var(--rule); }
+  .grade-btn.miss:hover{ border-color: var(--terracotta); color: var(--terracotta); }
+  .grade-btn.got:hover{ border-color: var(--olive); color: var(--olive); }
+  .grade-btn.chosen.miss{ border-color: var(--terracotta); color: var(--terracotta); background: rgba(181,86,58,0.08); }
+  .grade-btn.chosen.got{ border-color: var(--olive); color: var(--olive); background: rgba(92,107,71,0.08); }
 
   .done-state{
     text-align: center;
@@ -550,7 +583,7 @@
       return;
     }
     const card = queue[currentIndex];
-    const remaining = queue.length - currentIndex;
+    const position = currentIndex + 1;
 
     const itFirst = direction === 'it-first';
     const frontText = itFirst ? card.it : card.en;
@@ -558,8 +591,10 @@
     const frontClass = itFirst ? 'italian' : 'english-front';
     const backClass = itFirst ? 'english' : 'italian-back';
 
+    const isFirst = currentIndex === 0;
+
     stage.innerHTML = `
-      <div class="counter">${remaining} of ${queue.length}</div>
+      <div class="counter">${position} of ${queue.length}</div>
       <div class="card" id="flashcard">
         <button class="volume-btn" id="volumeBtn" aria-label="Play pronunciation" title="Play pronunciation">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -571,12 +606,16 @@
         <div class="${backClass} ${revealed ? '' : 'hidden'}" id="backWord">${backText}</div>
         ${!revealed ? '<div class="tap-hint">tap card to reveal</div>' : ''}
       </div>
-      ${revealed ? `
-        <div class="grade-row">
-          <button class="grade-btn miss" data-grade="miss">Didn't know it</button>
-          <button class="grade-btn got" data-grade="got">Got it</button>
-        </div>
-      ` : ''}
+
+      <div class="nav-row">
+        <button class="nav-btn" id="prevBtn" ${isFirst ? 'disabled' : ''}>← Prev</button>
+        <button class="nav-btn" id="nextBtn">Next →</button>
+      </div>
+
+      <div class="grade-row optional">
+        <button class="grade-btn miss" data-grade="miss">Didn't know it</button>
+        <button class="grade-btn got" data-grade="got">Got it</button>
+      </div>
     `;
 
     // tapping the card (but not the volume button) reveals
@@ -591,13 +630,28 @@
       speakItalian(card.it);
     });
 
+    // Prev / Next: primary navigation, never blocked, always available
+    document.getElementById('prevBtn').addEventListener('click', () => {
+      if(currentIndex > 0){
+        currentIndex--;
+        revealed = false;
+        renderCard();
+      }
+    });
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      currentIndex++;
+      revealed = false;
+      renderCard();
+    });
+
+    // Grading: optional, secondary. Records progress but does NOT advance the card.
     document.querySelectorAll('.grade-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         gradeCard(card.id, btn.dataset.grade);
-        currentIndex++;
-        revealed = false;
-        renderCard();
+        btn.classList.add('chosen');
+        const sibling = btn.parentElement.querySelector(`.grade-btn:not([data-grade="${btn.dataset.grade}"])`);
+        if(sibling) sibling.classList.remove('chosen');
       });
     });
   }
